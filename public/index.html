@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Pickup Timer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .form-section {
+            padding: 40px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result-section {
+            padding: 40px;
+            background: #f8f9fa;
+            border-top: 1px solid #e1e5e9;
+            display: none;
+        }
+
+        .result-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .departure-time {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4facfe;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .flight-info, .driving-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-item {
+            text-align: center;
+        }
+
+        .info-label {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .advice {
+            background: #e8f4fd;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #4facfe;
+            margin-top: 20px;
+        }
+
+        .reminder-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #fff3cd;
+            border-radius: 10px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4facfe;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .flight-info, .driving-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .form-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✈️ Flight Pickup Timer</h1>
+            <p>Never miss a pickup again! Get real-time departure times based on flight status and traffic.</p>
+        </div>
+
+        <div class="form-section">
+            <form id="pickupForm">
+                <div class="form-group">
+                    <label for="flightNumber">Flight Number</label>
+                    <input type="text" id="flightNumber" placeholder="e.g., AA1234, UA456, or 'When should I leave for United 456?'" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="currentLocation">Your Current Location</label>
+                    <input type="text" id="currentLocation" placeholder="e.g., 123 Main St, San Francisco, CA" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="airportCode">Airport Code</label>
+                    <select id="airportCode" required>
+                        <option value="">Select Airport</option>
+                        <option value="SFO">San Francisco (SFO)</option>
+                        <option value="LAX">Los Angeles (LAX)</option>
+                        <option value="JFK">New York JFK (JFK)</option>
+                        <option value="LGA">New York LaGuardia (LGA)</option>
+                        <option value="ORD">Chicago O'Hare (ORD)</option>
+                        <option value="DFW">Dallas (DFW)</option>
+                        <option value="ATL">Atlanta (ATL)</option>
+                        <option value="DEN">Denver (DEN)</option>
+                        <option value="SEA">Seattle (SEA)</option>
+                        <option value="BOS">Boston (BOS)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="bufferMinutes">Buffer Time (minutes)</label>
+                    <select id="bufferMinutes">
+                        <option value="15">15 minutes</option>
+                        <option value="30" selected>30 minutes</option>
+                        <option value="45">45 minutes</option>
+                        <option value="60">60 minutes</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn" id="calculateBtn">Calculate Departure Time</button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Fetching flight data and calculating traffic...</p>
+            </div>
+
+            <div class="error" id="error"></div>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <div class="result-card">
+                <div class="departure-time" id="departureTime"></div>
+                
+                <div class="flight-info">
+                    <div class="info-item">
+                        <div class="info-label">Flight</div>
+                        <div class="info-value" id="flightNumberResult"></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Arrival Time</div>
+                        <div class="info-value" id="arrivalTime"></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Gate</div>
+                        <div class="info-value" id="gate"></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Status</div>
+                        <div class="info-value" id="status"></div>
+                    </div>
+                </div>
+
+                <div class="driving-info">
+                    <div class="info-item">
+                        <div class="info-label">Driving Time</div>
+                        <div class="info-value" id="drivingTime"></div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Distance</div>
+                        <div class="info-value" id="distance"></div>
+                    </div>
+                </div>
+
+                <div class="advice" id="advice"></div>
+
+                <div class="reminder-section">
+                    <h3>🔔 Set Reminder</h3>
+                    <p>Get notified before it's time to leave!</p>
+                    <div style="margin-top: 15px;">
+                        <label for="reminderMinutes">Remind me</label>
+                        <select id="reminderMinutes" style="width: auto; display: inline-block; margin: 0 10px;">
+                            <option value="15">15 minutes</option>
+                            <option value="30" selected>30 minutes</option>
+                            <option value="60">1 hour</option>
+                            <option value="120">2 hours</option>
+                        </select>
+                        <label>before departure time</label>
+                    </div>
+                    <button type="button" class="btn" id="setReminderBtn" style="margin-top: 15px; width: auto; padding: 10px 20px;">
+                        Set Reminder
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('pickupForm');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const resultSection = document.getElementById('resultSection');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const setReminderBtn = document.getElementById('setReminderBtn');
+
+        let currentDepartureTime = null;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                flightNumber: document.getElementById('flightNumber').value,
+                currentLocation: document.getElementById('currentLocation').value,
+                airportCode: document.getElementById('airportCode').value,
+                bufferMinutes: parseInt(document.getElementById('bufferMinutes').value)
+            };
+
+            // Show loading state
+            loading.style.display = 'block';
+            error.style.display = 'none';
+            resultSection.style.display = 'none';
+            calculateBtn.disabled = true;
+
+            try {
+                const response = await fetch('/api/calculate-pickup', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Something went wrong');
+                }
+
+                // Display results
+                displayResults(data);
+                currentDepartureTime = data.departureTime;
+
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                loading.style.display = 'none';
+                calculateBtn.disabled = false;
+            }
+        });
+
+        function displayResults(data) {
+            document.getElementById('departureTime').textContent = 
+                new Date(data.departureTime).toLocaleString();
+            
+            document.getElementById('flightNumberResult').textContent = data.flightNumber;
+            document.getElementById('arrivalTime').textContent = 
+                new Date(data.flightInfo.arrival).toLocaleString();
+            document.getElementById('gate').textContent = data.flightInfo.gate || 'TBD';
+            document.getElementById('status').textContent = data.flightInfo.status;
+            document.getElementById('drivingTime').textContent = `${data.drivingTime.duration} minutes`;
+            document.getElementById('distance').textContent = data.drivingTime.distance;
+            document.getElementById('advice').textContent = data.advice;
+
+            resultSection.style.display = 'block';
+        }
+
+        function showError(message) {
+            error.textContent = message;
+            error.style.display = 'block';
+        }
+
+        setReminderBtn.addEventListener('click', async () => {
+            if (!currentDepartureTime) {
+                showError('Please calculate departure time first');
+                return;
+            }
+
+            const reminderMinutes = parseInt(document.getElementById('reminderMinutes').value);
+            
+            try {
+                const response = await fetch('/api/set-reminder', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        departureTime: currentDepartureTime,
+                        reminderMinutes: reminderMinutes
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to set reminder');
+                }
+
+                alert(`✅ Reminder set! You'll be notified at ${new Date(data.reminderTime).toLocaleString()}`);
+
+            } catch (err) {
+                showError(err.message);
+            }
+        });
+
+        // Auto-detect location (optional)
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                // You could reverse geocode this to get address
+                console.log('Location detected:', position.coords.latitude, position.coords.longitude);
+            });
+        }
+    </script>
+</body>
+</html>
